@@ -37,6 +37,68 @@
       #btn-capturar:hover { background-color: #00BFFF; }
 
       .a-enter-vr #btn-menu-2d, .a-enter-vr #btn-capturar { display: none; }
+
+      /* === TARJETA INFO 2D === */
+      #panel-card-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        z-index: 2000; display: none;
+        justify-content: center; align-items: center;
+        background: rgba(0, 0, 0, 0.35);
+        backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+      }
+      .info-card {
+        background: #ffffff; border-radius: 18px; overflow: hidden;
+        width: 400px; max-width: 92vw;
+        box-shadow: 0 30px 90px rgba(0, 0, 0, 0.55);
+        position: relative;
+        animation: cardSlideIn 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      @keyframes cardSlideIn {
+        from { opacity: 0; transform: scale(0.88) translateY(24px); }
+        to   { opacity: 1; transform: scale(1) translateY(0); }
+      }
+      .card-foto {
+        height: 200px;
+        background: linear-gradient(135deg, #E3173E 0%, #9b0f29 100%);
+        background-size: cover; background-position: center;
+        position: relative;
+      }
+      .card-foto-overlay {
+        position: absolute; bottom: 0; left: 0; right: 0;
+        padding: 18px 20px 16px;
+        background: linear-gradient(to top, rgba(0,0,0,0.72) 0%, transparent 100%);
+      }
+      .card-titulo {
+        color: #ffffff; font-family: 'Segoe UI', Arial, sans-serif;
+        font-size: 17px; font-weight: 800; margin: 0; letter-spacing: 0.4px;
+        text-shadow: 0 1px 6px rgba(0,0,0,0.5);
+      }
+      .card-subtitulo {
+        color: rgba(255,255,255,0.80); font-family: 'Segoe UI', Arial, sans-serif;
+        font-size: 10px; font-weight: 700; margin: 5px 0 0;
+        letter-spacing: 1.8px; text-transform: uppercase;
+      }
+      .card-body { padding: 18px 20px 22px; }
+      .card-seccion-titulo {
+        color: #E3173E; font-family: 'Segoe UI', Arial, sans-serif;
+        font-size: 13px; font-weight: 700; margin: 0 0 8px;
+        text-transform: uppercase; letter-spacing: 0.6px;
+      }
+      .card-seccion-texto {
+        color: #555555; font-family: 'Segoe UI', Arial, sans-serif;
+        font-size: 13.5px; line-height: 1.65; margin: 0;
+        white-space: pre-line;
+      }
+      .card-close-btn {
+        position: absolute; top: 11px; right: 11px;
+        width: 33px; height: 33px;
+        background: rgba(255,255,255,0.92); border: none; border-radius: 50%;
+        font-size: 20px; line-height: 1; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.25); color: #444;
+        z-index: 10; transition: background 0.2s, transform 0.15s;
+      }
+      .card-close-btn:hover { background: #ffffff; transform: scale(1.1); }
     </style>
     
     <script>
@@ -192,57 +254,28 @@
       });
 
       // =============================================================
-      // APERTURA DE HOTSPOT Y MODO OSCURO
+      // APERTURA DE HOTSPOT — muestra tarjeta HTML 2D
       // =============================================================
       AFRAME.registerComponent('hotspot-info', {
         schema: {
-          target: {type: 'string'}, 
-          action: {type: 'string', default: 'toggle'} 
+          target: {type: 'string'},
+          action: {type: 'string', default: 'toggle'}
         },
         init: function () {
           var el = this.el;
           var data = this.data;
-          
+
           el.addEventListener('click', function (evt) {
-            var panel = document.querySelector(data.target);
-            var fondoOscuro = document.querySelector('#hotspot-darkbg'); // Fondo negro
-            
-            if (!panel) return;
-            evt.stopPropagation(); 
-
-            var flechas = document.querySelector('#flechas-container');
-            if (data.action === 'close') {
-                panel.setAttribute('visible', 'false');
-                panel.classList.remove('panel-activo');
-                if(fondoOscuro) fondoOscuro.setAttribute('visible', 'false');
-                if (!document.querySelector('.panel-activo') && flechas) flechas.setAttribute('visible', 'true');
-            } else {
-                panel.setAttribute('visible', 'true');
-                panel.classList.add('panel-activo');
-                if(fondoOscuro) fondoOscuro.setAttribute('visible', 'true');
-                if (flechas) flechas.setAttribute('visible', 'false');
-                
-                var cam = document.querySelector('#camara-principal').object3D;
-                var startPos = new THREE.Vector3(0, 0, -11);
-                startPos.applyMatrix4(cam.matrixWorld);
-                var camWorldPos = new THREE.Vector3();
-                cam.getWorldPosition(camWorldPos);
-                startPos.y = camWorldPos.y - 0.3;
-                panel.object3D.position.copy(startPos);
-
-                var lookAtPos = new THREE.Vector3().copy(camWorldPos);
-                lookAtPos.y = panel.object3D.position.y;
-                panel.object3D.lookAt(lookAtPos);
-            }
+            if (data.action === 'close') return;
+            evt.stopPropagation();
+            abrirCardHTML(data.target);
           });
-          
+
           el.addEventListener('mouseenter', function () {
-              if (data.action !== 'close') el.setAttribute('scale', '0.9 0.9 0.9'); 
-              else el.setAttribute('color', '#FF5555'); 
+            el.setAttribute('scale', '1.0 1.0 1.0');
           });
           el.addEventListener('mouseleave', function () {
-              if (data.action !== 'close') el.setAttribute('scale', '0.8 0.8 0.8');
-              else el.setAttribute('color', '#FF0000');
+            el.setAttribute('scale', '0.8 0.8 0.8');
           });
         }
       });
@@ -455,6 +488,211 @@
         }
       };
 
+      // =============================================================
+      // DATOS Y LÓGICA DE TARJETAS HTML 2D
+      // =============================================================
+      const panelCardData = {
+        '#panel-info-entrada': {
+          titulo: 'ENTRADA PRINCIPAL ESAN',
+          imagen: 'imagenes/entrada.jpg',
+          texto: 'Bienvenido a la Universidad ESAN, una de las instituciones de educación superior en negocios más prestigiosas de América Latina.\n\nFundada en 1963, ESAN forma líderes con visión global, valores éticos y excelencia académica.\n\nExplora nuestro campus y descubre todo lo que tenemos para ti.'
+        },
+        '#panel-info-jardin': {
+          titulo: 'PINO ESAN',
+          imagen: 'imagenes/jardin.jpg',
+          texto: 'Hace 60 años, nuestra institución dio sus primeros pasos en la formación de los líderes que necesita el Perú para su desarrollo.\n\nDe las primeras clases dictadas en la sede inicial, en San Isidro, hemos pasado a un campus más extenso y moderno en Monterrico.\n\n"Una prueba de ello es el gran pino que permanece de pie y que constituye un emblema de ESAN"'
+        },
+        '#panel-info-jardin2': {
+          titulo: 'CAJA Y PAGOS ESAN',
+          imagen: 'imagenes/jardin.jpg',
+          texto: 'Aquí se encuentra el área administrativa de pagos de la universidad ESAN.\n\nPuedes acercarte a realizar el pago de pensiones, deudas académicas, matrícula y otros conceptos de manera presencial.\n\nEl personal de caja te orientará en cada proceso de manera rápida y ordenada.'
+        },
+        '#panel-info-fuente': {
+          titulo: 'FUENTE CENTRAL',
+          imagen: 'imagenes/fuente.jpg',
+          texto: 'La fuente central es uno de los símbolos más representativos del campus ESAN.\n\nEste espacio invita a la reflexión y al encuentro entre estudiantes, docentes y visitantes.\n\nUn punto de referencia que da vida y dinamismo al corazón del campus.'
+        },
+        '#panel-info-comedor-fuente': {
+          titulo: 'COMEDOR ESAN',
+          imagen: 'imagenes/fuente.jpg',
+          texto: 'El Comedor de ESAN es el espacio donde la comunidad universitaria puede disfrutar de una alimentación variada y de calidad.\n\nOfrece menús diarios balanceados a precios accesibles, pensados para que estudiantes y docentes recarguen energías durante la jornada académica.\n\nUn lugar de encuentro, descanso y convivencia entre clases.'
+        },
+        '#panel-info-capilla': {
+          titulo: 'CAPILLA ESAN',
+          imagen: 'imagenes/capilla.jpg',
+          texto: 'La Capilla de ESAN es un espacio sagrado de recogimiento y oración.\n\nEste lugar está consagrado a la memoria de los alumnos, profesores y miembros de la comunidad ESAN que han partido.\n\nAquí la comunidad universitaria se une en fe, gratitud y esperanza, recordando con cariño a quienes dejaron una huella imborrable en nuestra institución.'
+        },
+        '#panel-info-fablab': {
+          titulo: 'FABLAB ESAN',
+          imagen: 'imagenes/fablab.jpg',
+          texto: 'El FabLab de ESAN es un laboratorio de fabricación digital donde la creatividad y la tecnología se fusionan.\n\nEquipado con impresoras 3D, cortadoras láser y herramientas de prototipado, este espacio permite a los estudiantes convertir sus ideas en productos reales.\n\nUn lugar para innovar, experimentar y emprender sin límites.'
+        },
+        '#panel-info-fablab2': {
+          titulo: 'IMPRESORAS 3D',
+          imagen: 'imagenes/fablab%202.jpg',
+          texto: 'Las impresoras 3D del FabLab ESAN permiten materializar ideas y prototipos con precisión milimétrica.\n\nMediante tecnología de deposición de material fundido (FDM), los estudiantes pueden crear piezas, modelos y prototipos funcionales para sus proyectos de innovación y emprendimiento.\n\nEl futuro se construye capa por capa.'
+        },
+        '#panel-info-voley': {
+          titulo: 'CANCHA DEPORTIVA',
+          imagen: 'imagenes/voley.jpg',
+          texto: 'La cancha deportiva de ESAN es el escenario de emocionantes competencias entre estudiantes y equipos de toda la universidad.\n\nAquí se practican deportes como vóley, fútbol, básquet y mucho más, fomentando el trabajo en equipo, la disciplina y el espíritu competitivo.\n\n¡El deporte también forma líderes!'
+        },
+        '#panel-info-bancapractica-voley': {
+          titulo: 'BANCA PRÁCTICA ESAN',
+          imagen: 'imagenes/voley.jpg',
+          texto: 'El espacio de Banca Práctica de ESAN es un laboratorio vivencial donde los estudiantes simulan operaciones bancarias y financieras reales.\n\nAquí se desarrollan competencias en gestión de riesgos, créditos, inversiones y servicios financieros, con herramientas y dinámicas que replican el entorno de una entidad bancaria.\n\nAprender haciendo: la clave de la formación financiera en ESAN.'
+        },
+        '#panel-info-basquet': {
+          titulo: 'CANCHA DE BÁSQUET',
+          imagen: 'imagenes/basquet.jpg',
+          texto: 'La cancha de básquet de ESAN es un espacio multideportivo donde los estudiantes pueden practicar, entrenar y participar en actividades recreativas.\n\nAdemás de básquet, este espacio se usa para dinámicas grupales, eventos deportivos y actividades de integración entre la comunidad universitaria.\n\n¡Un lugar para moverse, competir y conectar!'
+        },
+        '#panel-info-explanada': {
+          titulo: 'AULAS POSTGRADO',
+          imagen: 'imagenes/explanadaconvention.jpeg',
+          texto: 'Las aulas de postgrado de ESAN están diseñadas para una experiencia de aprendizaje de alto nivel.\n\nAquí se desarrollan programas de MBA, maestrías y especializaciones que forman a los líderes empresariales del mañana.\n\nEspacios modernos, dinámicos y equipados para potenciar el pensamiento crítico y la excelencia académica.'
+        },
+        '#panel-info-convention-explanada': {
+          titulo: 'CONVENTION CENTER ESAN',
+          imagen: 'imagenes/explanadaconvention.jpeg',
+          texto: 'El Convention Center de ESAN es uno de los espacios de eventos más importantes de la universidad.\n\nDotado de modernas instalaciones, alberga congresos, conferencias internacionales, ferias empresariales, graduaciones y grandes eventos académicos que reúnen a la comunidad esanista y a líderes del mundo de los negocios.\n\nUn escenario donde el conocimiento y la innovación se encuentran.'
+        },
+        '#panel-info-eventos': {
+          titulo: 'ÁREA DE EVENTOS',
+          imagen: 'imagenes/eventos.jpg',
+          texto: 'El área de eventos de ESAN es el corazón de la vida universitaria fuera del aula.\n\nAquí se celebran graduaciones, ferias de emprendimiento, lanzamientos de proyectos y muchas más actividades que enriquecen la experiencia de toda la comunidad.\n\nUn espacio donde los sueños y logros de los esanistas cobran vida.'
+        },
+        '#panel-info-butacas': {
+          titulo: 'ZONA DE BUTACAS',
+          imagen: 'imagenes/butacas%20actualizado.jpg',
+          texto: 'La zona de butacas de ESAN es el espacio ideal para disfrutar de eventos en vivo y transmisiones especiales.\n\nAquí la comunidad universitaria se reúne para ver partidos de fútbol, ceremonias de premiación, presentaciones artísticas y mucho más.\n\nUn lugar donde cada evento se vive con emoción y sentido de pertenencia esanista.'
+        },
+        '#panel-info-biblioteca': {
+          titulo: 'BIBLIOTECA ESAN',
+          imagen: 'imagenes/biblioteca.jpg',
+          texto: 'La Biblioteca de ESAN es el espacio ideal para estudiar, leer e investigar.\n\nCon un amplio acervo bibliográfico físico y digital, ofrece recursos académicos de primer nivel para apoyar la formación de cada estudiante.\n\nEl silencio es la norma: un ambiente de concentración y respeto donde el conocimiento es el protagonista.'
+        },
+        '#panel-info-danza': {
+          titulo: 'SALÓN DE DANZA',
+          imagen: 'imagenes/danza.jpg',
+          texto: 'El salón de danza de ESAN es el espacio donde el arte y el movimiento se expresan libremente.\n\nAquí los estudiantes ensayan, crean coreografías y se preparan para presentaciones y festivales culturales que enriquecen la vida universitaria.\n\nUn lugar para soltar la creatividad, conectar con el ritmo y celebrar la cultura a través del baile.'
+        },
+        '#panel-info-inpro-danza': {
+          titulo: 'INPRO ESAN',
+          imagen: 'imagenes/danza.jpg',
+          texto: 'InPro es el grupo de improvisación teatral de ESAN donde la timidez no existe.\n\nAquí los estudiantes aprenden a improvisar, actuar y conectar con los demás a través del juego escénico, desarrollando habilidades de comunicación, liderazgo y creatividad.\n\n¡Sube al escenario y descubre todo lo que eres capaz de expresar!'
+        },
+        '#panel-info-edificioA': {
+          titulo: 'MÁQUINAS DE SNACKS',
+          imagen: 'imagenes/edificioA.jpg',
+          texto: 'El dispensador de golosinas de ESAN es el punto de recarga perfecto para los momentos de receso entre clases.\n\nEncuentra snacks, bebidas y bocadillos para reponer energías y continuar el día con todo.\n\n¡Ideal para esos momentos de pausa que necesitas!'
+        },
+        '#panel-info-edificioD': {
+          titulo: 'CAJERO BCP',
+          imagen: 'imagenes/edificioD.jpeg',
+          texto: 'El campus ESAN cuenta con un cajero automático del Banco de Crédito del Perú (BCP) disponible para toda la comunidad universitaria.\n\nPuedes realizar retiros, consultas de saldo y otras operaciones bancarias de manera rápida y segura sin salir del campus.\n\n¡Tu banco siempre cerca cuando lo necesitas!'
+        },
+        '#panel-info-libreria-edificioD': {
+          titulo: 'LIBRERÍA ESAN',
+          imagen: 'imagenes/edificioD.jpeg',
+          texto: 'La Librería de ESAN es el espacio dedicado a la venta de libros, textos académicos, materiales de estudio y artículos de escritorio.\n\nAquí encontrarás publicaciones especializadas en negocios, gestión, finanzas y más, ideales para complementar tu formación universitaria.\n\nUn recurso esencial para todo esanista comprometido con el aprendizaje.'
+        },
+        '#panel-info-conducta': {
+          titulo: 'LAB DE CONDUCTA',
+          imagen: 'imagenes/conducta.jpg',
+          texto: 'El Laboratorio de Conducta de ESAN es un espacio especializado donde se brinda asesoría y orientación conductual a los miembros de la comunidad universitaria.\n\nAquí profesionales capacitados acompañan a estudiantes y docentes en el desarrollo de habilidades sociales, gestión emocional y bienestar integral.\n\nUn lugar de apoyo, escucha y crecimiento personal.'
+        },
+        '#panel-info-ecoesan': {
+          titulo: 'ECO ESAN',
+          imagen: 'imagenes/ecoesan.jpg',
+          texto: 'EcoESAN es la iniciativa ambiental de la universidad que promueve una cultura de reciclaje y cuidado del medio ambiente dentro del campus.\n\nLos estudiantes y docentes participan en campañas de reciclaje y clasificación de residuos, y los mejores participantes reciben premios y reconocimientos especiales.\n\n¡Reciclar es una forma de liderar con responsabilidad!'
+        },
+        '#panel-info-cafeteria-ecoesan': {
+          titulo: 'CAFETERÍA ESAN',
+          imagen: 'imagenes/cafeteria.jpeg',
+          texto: 'La Cafetería de ESAN es el punto de encuentro favorito de la comunidad universitaria.\n\nUn espacio perfecto para estudiar, avanzar trabajos grupales o simplemente tomarse un café con los amigos entre clase y clase.\n\nCon un ambiente acogedor y una variada oferta de alimentos y bebidas, la cafetería es el lugar donde las ideas fluyen y las amistades se fortalecen.'
+        },
+        '#panel-info-aula': {
+          titulo: 'AULA DE CLASES',
+          imagen: 'imagenes/aula.jpg',
+          texto: 'Las aulas de ESAN son espacios diseñados para potenciar el aprendizaje activo y el intercambio de ideas.\n\nEquipadas con tecnología moderna, permiten desarrollar clases dinámicas, debates, casos de negocio y presentaciones que preparan a los estudiantes para los retos del mundo empresarial.\n\nAquí cada sesión es una oportunidad para crecer y transformarse.'
+        },
+        '#panel-info-laboratorio': {
+          titulo: 'LAB DE CÓMPUTO',
+          imagen: 'imagenes/laboratorio%20computo.jpg',
+          texto: 'El Laboratorio de Cómputo de ESAN está equipado con computadoras de alto rendimiento para el desarrollo de clases que requieren herramientas digitales.\n\nAquí los estudiantes trabajan con software especializado en análisis de datos, simulaciones, programación y mucho más.\n\nTecnología al servicio del aprendizaje y la innovación.'
+        },
+        '#panel-info-datalab': {
+          titulo: 'DATA LAB',
+          imagen: 'imagenes/datalab.jpg',
+          texto: 'El Data Lab de ESAN es el espacio dedicado al estudio y análisis de datos para la toma de decisiones empresariales.\n\nAquí los estudiantes aprenden a trabajar con Big Data, inteligencia artificial, machine learning y herramientas de visualización para extraer valor de la información.\n\nEl futuro de los negocios se construye con datos.'
+        },
+        '#panel-info-cafeteria': {
+          titulo: 'CAFETERÍA ESAN',
+          imagen: 'imagenes/cafeteria.jpeg',
+          texto: 'La Cafetería de ESAN es el punto de encuentro favorito de la comunidad universitaria.\n\nUn espacio perfecto para estudiar, avanzar trabajos grupales o simplemente tomarse un café con los amigos entre clase y clase.\n\nCon un ambiente acogedor y una variada oferta de alimentos y bebidas, la cafetería es el lugar donde las ideas fluyen y las amistades se fortalecen.'
+        },
+        '#panel-info-cafeteria_interior': {
+          titulo: 'CAFETERÍA INTERIOR ESAN',
+          imagen: 'imagenes/cafeteria_interior.jpg',
+          texto: 'El interior de la Cafetería ESAN es un espacio acogedor y moderno donde la comunidad universitaria se reúne a compartir momentos especiales.\n\nCon una amplia variedad de opciones gastronómicas, desde desayunos hasta almuerzos completos, la cafetería satisface los gustos de toda la comunidad.\n\nSabores que hacen más amena la vida universitaria.'
+        },
+        '#panel-info-fuera': {
+          titulo: 'EXTERIOR ESAN',
+          imagen: 'imagenes/fuera%20de%20esan.jpg',
+          texto: 'El exterior de la Universidad ESAN ofrece amplios espacios verdes y áreas de tránsito que conectan los distintos edificios del campus.\n\nDesde aquí puedes apreciar la arquitectura moderna de las instalaciones y disfrutar del ambiente universitario.\n\nUn espacio de encuentro para toda la comunidad ESAN.'
+        },
+        '#panel-info-fisica': {
+          titulo: 'LABORATORIO DE FÍSICA',
+          imagen: 'imagenes/laboratorio%20de%20fisica.jpg',
+          texto: 'El Laboratorio de Física de ESAN cuenta con equipos de última generación para el estudio experimental de fenómenos físicos.\n\nAquí los estudiantes realizan prácticas de mecánica, electricidad, óptica y termodinámica, fortaleciendo su comprensión teórica con experiencia práctica.\n\nUn espacio diseñado para la exploración científica y el pensamiento analítico.'
+        },
+        '#panel-info-quimica': {
+          titulo: 'LABORATORIO DE QUÍMICA',
+          imagen: 'imagenes/laboratorio%20de%20quimica.jpg',
+          texto: 'El Laboratorio de Química de ESAN ofrece un entorno seguro y equipado para el desarrollo de prácticas experimentales.\n\nCon material de laboratorio moderno, los estudiantes aprenden técnicas de análisis químico, síntesis y caracterización de sustancias aplicadas a la gestión empresarial y la innovación.\n\nCiencia al servicio del conocimiento y la industria.'
+        },
+        '#panel-info-estudio_pregrado': {
+          titulo: 'SALA DE ESTUDIO PREGRADO',
+          imagen: 'imagenes/salas%20de%20estudio%20pregrado.jpg',
+          texto: 'Las salas de estudio para pregrado de ESAN son espacios cómodos y equipados pensados para el aprendizaje individual y en grupo.\n\nCon mesas amplias, buena iluminación y conexión a internet, los estudiantes encuentran aquí el ambiente ideal para preparar sus exámenes, desarrollar proyectos y estudiar en equipo.\n\nEl éxito académico comienza con el entorno adecuado.'
+        },
+        '#panel-info-estudio_mba': {
+          titulo: 'SALA DE ESTUDIO MBA',
+          imagen: 'imagenes/salas%20de%20estudio%20mba.jpg',
+          texto: 'Las salas de estudio para MBA de ESAN están diseñadas para profesionales que buscan potenciar sus habilidades de gestión y liderazgo.\n\nEspacios funcionales que facilitan el trabajo colaborativo, la discusión de casos empresariales y la preparación de presentaciones ejecutivas.\n\nDonde los líderes del mañana construyen sus estrategias hoy.'
+        },
+        '#panel-info-estudio_magister': {
+          titulo: 'SALA DE ESTUDIO MAGÍSTER',
+          imagen: 'imagenes/salas%20de%20estudio%20magister.jpg',
+          texto: 'Las salas de estudio para Magíster de ESAN son entornos de alto nivel académico para investigadores y estudiantes de posgrado.\n\nEquipadas con recursos especializados, estas salas favorecen el desarrollo de tesis, proyectos de investigación y el intercambio de conocimiento entre pares.\n\nFormando expertos que transforman sus campos de acción.'
+        },
+        '#panel-info-descanso_magister': {
+          titulo: 'SALA DE DESCANSO MAGÍSTER',
+          imagen: 'imagenes/sala%20de%20descanso%20magister.jpg',
+          texto: 'La sala de descanso para estudiantes de Magíster es un espacio pensado para la recuperación y el bienestar durante las largas jornadas académicas.\n\nCon ambientes cómodos y tranquilos, permite a los estudiantes relajarse, socializar y recargar energías entre sesiones de estudio o clases.\n\nPorque el descanso también es parte del aprendizaje.'
+        }
+      };
+
+      function abrirCardHTML(targetId) {
+        var data = panelCardData[targetId];
+        if (!data) return;
+        var foto = document.getElementById('card-foto');
+        document.getElementById('card-titulo').textContent = data.titulo;
+        document.getElementById('card-texto').textContent = data.texto;
+        if (data.imagen) {
+          foto.style.backgroundImage = "url('" + data.imagen + "')";
+        } else {
+          foto.style.backgroundImage = 'none';
+        }
+        document.getElementById('panel-card-overlay').style.display = 'flex';
+        document.querySelector('#flechas-container').setAttribute('visible', 'false');
+      }
+
+      function cerrarCardHTML() {
+        document.getElementById('panel-card-overlay').style.display = 'none';
+      }
+
       var _isDragging = false;
       var _mousedownX = 0, _mousedownY = 0;
       document.addEventListener('mousedown', function(e) {
@@ -549,7 +787,8 @@
         btnLanzarMinijuego.setAttribute('visible', 'false');
         btnLanzarMinijuego.classList.remove('clickable');
         
-        if(fondoOscuro) fondoOscuro.setAttribute('visible', 'false'); 
+        if(fondoOscuro) fondoOscuro.setAttribute('visible', 'false');
+        cerrarCardHTML();
 
         // Ocultar Hotspots al cambiar de escena
         var todosHotspots = document.querySelectorAll('.grupo-hotspots');
@@ -864,14 +1103,23 @@
         cieloFondo.addEventListener('materialtextureloaded', function onFirstTexture() {
             cieloFondo.removeEventListener('materialtextureloaded', onFirstTexture);
             revelarInicio();
-            setTimeout(aplicarMarcosPaneles, 200);
         });
 
         // Fallback: si materialtextureloaded no dispara, revelar igual
         setTimeout(function() {
           revelarInicio();
-          setTimeout(aplicarMarcosPaneles, 200);
         }, 1500);
+
+        document.getElementById('card-close-btn').addEventListener('click', function() {
+          cerrarCardHTML();
+          document.querySelector('#flechas-container').setAttribute('visible', 'true');
+        });
+        document.getElementById('panel-card-overlay').addEventListener('click', function(e) {
+          if (e.target === this) {
+            cerrarCardHTML();
+            document.querySelector('#flechas-container').setAttribute('visible', 'true');
+          }
+        });
 
         document.getElementById('btn-menu-2d').addEventListener('click', toggleMenu3D);
         document.querySelector('#btn-lanzar-minijuego').addEventListener('click', activarMinijuego);
@@ -905,59 +1153,6 @@
             console.log(codigoGenerado);
         });
       };
-
-      var _marcosAplicados = false;
-      function aplicarMarcosPaneles() {
-        if (_marcosAplicados) return;
-        _marcosAplicados = true;
-        document.querySelectorAll('[id^="panel-info-"]').forEach(function(panel) {
-          var plano = panel.querySelector('a-plane:not(.close-btn)');
-          if (!plano) return;
-
-          var w = parseFloat(plano.getAttribute('width') || 4);
-          var h = parseFloat(plano.getAttribute('height') || 3);
-
-          var sombra = document.createElement('a-entity');
-          sombra.setAttribute('geometry', `primitive: rounded-rect; width: ${(w + 0.3).toFixed(2)}; height: ${(h + 0.3).toFixed(2)}; radius: 0.22`);
-          sombra.setAttribute('material', 'color: #000000; opacity: 0.30; shader: flat');
-          sombra.setAttribute('position', '0.10 -0.10 -0.05');
-
-          var marco = document.createElement('a-entity');
-          marco.setAttribute('geometry', `primitive: rounded-rect; width: ${(w + 0.16).toFixed(2)}; height: ${(h + 0.16).toFixed(2)}; radius: 0.18`);
-          marco.setAttribute('material', 'color: #E3173E; opacity: 1; shader: flat; transparent: false');
-          marco.setAttribute('position', '0 0 -0.02');
-
-          var fondo = document.createElement('a-entity');
-          fondo.setAttribute('geometry', `primitive: rounded-rect; width: ${w}; height: ${h}; radius: 0.14`);
-          fondo.setAttribute('material', 'color: #FFFFFF; opacity: 1; shader: flat; transparent: false');
-          fondo.setAttribute('position', '0 0 -0.01');
-
-          panel.insertBefore(fondo, plano);
-          panel.insertBefore(marco, fondo);
-          panel.insertBefore(sombra, marco);
-          plano.remove();
-
-          // X: esquina superior derecha sobre el marco rojo, sin superponerse al título
-          var closeBtn = panel.querySelector('.close-btn');
-          if (closeBtn) {
-            closeBtn.setAttribute('position', `${(w / 2 - 0.15).toFixed(2)} ${(h / 2 + 0.05).toFixed(2)} 0.04`);
-          }
-
-          // Textos: z=0.06 evita z-fighting con el marco al rotar; título en negrita y bajado
-          var textos = Array.from(panel.querySelectorAll('a-text')).filter(function(t) {
-            return !t.parentElement.classList.contains('close-btn');
-          });
-          textos.forEach(function(txt, i) {
-            var pos = (txt.getAttribute('position') || '0 0 0').split(' ');
-            pos[2] = '0.06';
-            if (i === 0) {
-              pos[1] = (h / 2 - 0.50).toFixed(2);
-              txt.setAttribute('font', 'exo2semibold');
-            }
-            txt.setAttribute('position', pos.join(' '));
-          });
-        });
-      }
 
       var _loaderOculto = false;
       function ocultarLoader() {
@@ -997,6 +1192,23 @@
         <p style="font-size: 1.2em; letter-spacing: 2px;">INICIANDO REALIDAD VIRTUAL...</p>
     </div>
 
+    <!-- Tarjeta informativa 2D (overlay web) -->
+    <div id="panel-card-overlay">
+      <div class="info-card">
+        <div class="card-foto" id="card-foto">
+          <div class="card-foto-overlay">
+            <h2 class="card-titulo" id="card-titulo"></h2>
+            <p class="card-subtitulo">UNIVERSIDAD ESAN</p>
+          </div>
+        </div>
+        <div class="card-body">
+          <p class="card-seccion-titulo">Acerca de este lugar</p>
+          <p class="card-seccion-texto" id="card-texto"></p>
+        </div>
+        <button class="card-close-btn" id="card-close-btn">&times;</button>
+      </div>
+    </div>
+
     <button id="btn-menu-2d">Abrir Menu de Navegacion</button>
     <button id="btn-capturar">🎯 Capturar Coordenada</button>
 
@@ -1018,8 +1230,6 @@
       <a-sky id="cielo-fondo" radius="500" rotation="0 -90 0"></a-sky>
       <a-light type="ambient" color="#FFF" intensity="1.5"></a-light>
       
-      <a-entity id="hotspot-darkbg" geometry="primitive: sphere; radius: 100" material="color: #000000; transparent: true; opacity: 0.6; side: back" visible="false"></a-entity>
-
       <a-entity id="flechas-container"></a-entity>
       <a-entity id="menu-3d" visible="false" scale="0.85 0.85 0.85"></a-entity>
 
