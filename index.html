@@ -331,6 +331,58 @@
             70%       { transform: translate(-50%, -50%) translateY(-2px); }
         }
         .hotspot-2d:hover { animation: hotspot-jump 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) infinite; }
+        #videos-2d-overlay {
+            position: fixed; inset: 0; pointer-events: none; z-index: 12;
+        }
+        .video-2d {
+            position: absolute;
+            transform: none;
+            margin-left: -52px;
+            margin-top: -38px;
+            width: 104px;
+            height: 76px;
+            min-width: 104px;
+            max-width: 104px;
+            min-height: 76px;
+            max-height: 76px;
+            box-sizing: border-box;
+            padding: 7px 9px 9px;
+            background: #fff;
+            border-radius: 7px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.34);
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+            pointer-events: auto; cursor: pointer;
+            font-family: Arial, sans-serif;
+            will-change: left, top;
+            backface-visibility: hidden;
+            contain: layout paint style;
+            flex: 0 0 auto;
+        }
+        .video-2d-label {
+            color: #000; font-size: 12px; line-height: 1; font-weight: 700;
+            text-align: center; white-space: nowrap;
+        }
+        .video-2d svg {
+            display: block; width: 70px; height: 43px; flex: 0 0 auto;
+        }
+        .video-2d--v360 {
+            width: 92px;
+            height: 68px;
+            min-width: 92px;
+            max-width: 92px;
+            min-height: 68px;
+            max-height: 68px;
+            margin-left: -46px;
+            margin-top: -42px;
+            padding: 6px 8px 8px;
+        }
+        .video-2d--v360 .video-2d-label {
+            font-size: 11px;
+        }
+        .video-2d--v360 svg {
+            width: 62px;
+            height: 38px;
+        }
         /* ── YOUTUBE MODAL ───────────────────────────── */
         #yt-modal {
             display: none; position: fixed; inset: 0; z-index: 3500;
@@ -1113,6 +1165,8 @@
             if (fl2dOverlay) { fl2dOverlay.innerHTML = ''; _flechas2D = []; }
             var hs2dOverlay = document.getElementById('hotspots-2d-overlay');
             if (hs2dOverlay) { hs2dOverlay.innerHTML = ''; _hotspots2D = []; }
+            var vid2dOverlay = document.getElementById('videos-2d-overlay');
+            if (vid2dOverlay) { vid2dOverlay.innerHTML = ''; _videos2D = []; }
 
             // Ocultar UI
             contenedorFlechas.setAttribute('visible', 'false');
@@ -1155,7 +1209,10 @@
                     s.setAttribute('visible', 'true');
                     s.querySelectorAll('[yt-screen]').forEach(function (p) { p.classList.add('clickable'); });
                 });
-                setTimeout(function() { try { generarHotspots2D(nombreEscena); } catch(e) {} }, 400);
+                setTimeout(function() {
+                    try { generarHotspots2D(nombreEscena); } catch(e) {}
+                    try { generarVideos2D(nombreEscena); } catch(e) {}
+                }, 400);
                 actualizarActivoSidenav(nombreEscena);
                 precargarAdyacentes(nombreEscena);
             }
@@ -1371,6 +1428,7 @@
                 _appReady = true;
                 precargarTodo('fuera');
                 try { generarHotspots2D('fuera'); } catch(e) {}
+                try { generarVideos2D('fuera'); } catch(e) {}
                 setTimeout(aplicarMarcosPaneles, 200);
                 setTimeout(function() {
                     var rig = document.getElementById('rig');
@@ -1639,6 +1697,80 @@
             }
         }
 
+        var _videos2D = [];
+        var _videos2DLoopRunning = false;
+
+        function _videos2DLoop() {
+            var scene = document.querySelector('a-scene');
+            var camera = scene && scene.camera;
+            if (camera) {
+                var W = window.innerWidth, H = window.innerHeight;
+                var v = new THREE.Vector3();
+                _videos2D.forEach(function(s) {
+                    if (!s.target.object3D || !s.target.object3D.visible) {
+                        s.el.style.visibility = 'hidden';
+                        return;
+                    }
+                    s.target.object3D.getWorldPosition(v);
+                    v.project(camera);
+                    if (v.z > 1) {
+                        s.el.style.visibility = 'hidden';
+                    } else {
+                        s.el.style.visibility = 'visible';
+                        s.el.style.left = Math.round((v.x + 1) / 2 * W) + 'px';
+                        s.el.style.top  = Math.round((-v.y + 1) / 2 * H) + 'px';
+                    }
+                });
+            }
+            requestAnimationFrame(_videos2DLoop);
+        }
+
+        function abrirVideoDesde2D(data) {
+            if (_isDragging || _transitioning || !_appReady || !data) return;
+            if (data.video360) {
+                abrirVideo360(data.video360);
+            } else if (data.newTab) {
+                window.open('https://youtu.be/' + data.videoId, '_blank', 'noopener');
+            } else if (data.videoId) {
+                abrirYoutube(data.videoId);
+            }
+        }
+
+        function generarVideos2D(sceneName) {
+            var overlay = document.getElementById('videos-2d-overlay');
+            if (!overlay) return;
+            overlay.innerHTML = '';
+            _videos2D = [];
+
+            document.querySelectorAll('.yt-screen-3d[data-scene="' + sceneName + '"]').forEach(function(screen) {
+                var trigger = screen.querySelector('[yt-screen]');
+                if (!trigger) return;
+
+                var data = trigger.getAttribute('yt-screen');
+                var btn = document.createElement('div');
+                btn.className = 'video-2d';
+                if (data && data.video360) btn.classList.add('video-2d--v360');
+                btn.innerHTML =
+                    '<div class="video-2d-label">Ver video</div>' +
+                    '<svg viewBox="0 0 96 58" aria-hidden="true">' +
+                        '<rect x="3" y="3" width="90" height="52" rx="7" fill="#FF0000" stroke="#FFFFFF" stroke-width="4"/>' +
+                        '<path d="M39 17 L39 41 L62 29 Z" fill="#FFFFFF"/>' +
+                    '</svg>';
+                btn.addEventListener('click', function(evt) {
+                    evt.stopPropagation();
+                    abrirVideoDesde2D(data);
+                });
+
+                overlay.appendChild(btn);
+                _videos2D.push({ el: btn, target: screen });
+            });
+
+            if (!_videos2DLoopRunning) {
+                _videos2DLoopRunning = true;
+                _videos2DLoop();
+            }
+        }
+
         /* ── SIDE NAV ─────────────────────────────────────────── */
         var _escenaActual = 'entrada';
         var _sidenavBuilt = false;
@@ -1828,8 +1960,45 @@
             function dibujarYtPlay(ctx) {
                 var W = 512, H = 320;
                 ctx.clearRect(0, 0, W, H);
-                // Botón YouTube (rectángulo rojo redondeado) - más grande
-                var bx = 80, by = 56, bw = 352, bh = 208, br = 32;
+
+                var cx = W / 2;
+                var cardX = 60, cardY = 18, cardW = 392, cardH = 284, cardR = 26;
+
+                ctx.save();
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
+                ctx.shadowBlur = 14;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 8;
+                ctx.fillStyle = '#FFFFFF';
+                ctx.beginPath();
+                ctx.moveTo(cardX + cardR, cardY);
+                ctx.lineTo(cardX + cardW - cardR, cardY);
+                ctx.arcTo(cardX + cardW, cardY, cardX + cardW, cardY + cardR, cardR);
+                ctx.lineTo(cardX + cardW, cardY + cardH - cardR);
+                ctx.arcTo(cardX + cardW, cardY + cardH, cardX + cardW - cardR, cardY + cardH, cardR);
+                ctx.lineTo(cardX + cardR, cardY + cardH);
+                ctx.arcTo(cardX, cardY + cardH, cardX, cardY + cardH - cardR, cardR);
+                ctx.lineTo(cardX, cardY + cardR);
+                ctx.arcTo(cardX, cardY, cardX + cardR, cardY, cardR);
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+
+                ctx.save();
+                ctx.font = 'bold 44px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#000000';
+                ctx.fillText('Ver video', cx, 58);
+                ctx.restore();
+
+                var bx = 82, by = 112, bw = 348, bh = 168, br = 24;
+
+                ctx.save();
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
+                ctx.shadowBlur = 18;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 10;
                 ctx.fillStyle = '#FF0000';
                 ctx.beginPath();
                 ctx.moveTo(bx + br, by);
@@ -1843,13 +2012,33 @@
                 ctx.arcTo(bx, by, bx + br, by, br);
                 ctx.closePath();
                 ctx.fill();
-                // Triángulo play blanco centrado - más grande
-                var cx = W / 2, cy = H / 2;
+                ctx.restore();
+
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.96)';
+                ctx.lineWidth = 10;
+                ctx.beginPath();
+                ctx.moveTo(bx + br, by);
+                ctx.lineTo(bx + bw - br, by);
+                ctx.arcTo(bx + bw, by, bx + bw, by + br, br);
+                ctx.lineTo(bx + bw, by + bh - br);
+                ctx.arcTo(bx + bw, by + bh, bx + bw - br, by + bh, br);
+                ctx.lineTo(bx + br, by + bh);
+                ctx.arcTo(bx, by + bh, bx, by + bh - br, br);
+                ctx.lineTo(bx, by + br);
+                ctx.arcTo(bx, by, bx + br, by, br);
+                ctx.closePath();
+                ctx.stroke();
+
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.55)';
+                ctx.lineWidth = 4;
+                ctx.stroke();
+
                 ctx.fillStyle = '#FFFFFF';
                 ctx.beginPath();
-                ctx.moveTo(cx - 52, cy - 58);
-                ctx.lineTo(cx - 52, cy + 58);
-                ctx.lineTo(cx + 72, cy);
+                var py = by + bh / 2;
+                ctx.moveTo(cx - 48, py - 52);
+                ctx.lineTo(cx - 48, py + 52);
+                ctx.lineTo(cx + 76, py);
                 ctx.closePath();
                 ctx.fill();
             }
@@ -2835,11 +3024,6 @@
         <!-- ── PANTALLAS YOUTUBE ─────────────────────────────── -->
         <a-entity class="yt-screen-3d" data-scene="robotica" visible="false"
             position="-14.00 2 0.18" rotation="0 90 0" no-cull>
-            <!-- Botón play YouTube (ocupa toda la pantalla del TV) -->
-            <a-plane src="#img-yt-play" width="8.4" height="5.7"
-                material="shader: flat; transparent: true; side: double; depthTest: false"
-                position="0 0 0.06" no-cull>
-            </a-plane>
             <!-- Área clickable -->
             <a-plane class="clickable" width="5.4" height="3.4"
                 material="color: #000; opacity: 0.001; shader: flat; transparent: true; side: double; depthTest: false"
@@ -2851,11 +3035,6 @@
 
         <a-entity class="yt-screen-3d" data-scene="robotica" visible="false"
             position="-0.6 3.4 -20" rotation="0 0 0" scale="0.7 0.7 0.7" no-cull>
-            <!-- Botón play YouTube (ocupa toda la pantalla del TV) -->
-            <a-plane src="#img-yt-play" width="8.4" height="5.7"
-                material="shader: flat; transparent: true; side: double; depthTest: false"
-                position="0 0 0.06" no-cull>
-            </a-plane>
             <!-- Área clickable -->
             <a-plane class="clickable" width="5.4" height="3.4"
                 material="color: #000; opacity: 0.001; shader: flat; transparent: true; side: double; depthTest: false"
@@ -2867,11 +3046,6 @@
 
         <a-entity class="yt-screen-3d" data-scene="fablab" visible="false"
             position="-0.54 3.8 -11.99" rotation="0 0 0" no-cull>
-            <!-- Botón play YouTube (ocupa toda la pantalla del TV) -->
-            <a-plane src="#img-yt-play" width="8.4" height="5.7"
-                material="shader: flat; transparent: true; side: double; depthTest: false"
-                position="0 0 0.06" no-cull>
-            </a-plane>
             <!-- Área clickable -->
             <a-plane class="clickable" width="5.4" height="3.4"
                 material="color: #000; opacity: 0.001; shader: flat; transparent: true; side: double; depthTest: false"
@@ -2977,6 +3151,7 @@
 
     <!-- ── 2D HOTSPOTS ──────────────────────────────────── -->
     <div id="hotspots-2d-overlay"></div>
+    <div id="videos-2d-overlay"></div>
     <img id="corner-logo" src="imagenes/pisoLogo.webp" alt="">
 
     <!-- ── SIDE NAV ─────────────────────────────────────── -->
