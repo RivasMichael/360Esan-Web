@@ -91,6 +91,16 @@
             z-index: 9999; cursor: pointer;
             border: 1px solid #00FF88;
         }
+        #corner-logo {
+            position: fixed;
+            top: 12px;
+            right: 16px;
+            width: 58px;
+            height: 58px;
+            object-fit: contain;
+            z-index: 2500;
+            pointer-events: none;
+        }
 
         /* ── 2D INFO CARD ─────────────────────────────────────── */
         :root {
@@ -139,7 +149,7 @@
             display: block;
             filter: brightness(0.82);
         }
-        .ic-img-logo {
+        .ic-im {
             position: absolute; inset: 0;
             display: flex; align-items: center; justify-content: center;
         }
@@ -209,12 +219,22 @@
         }
         /* H1 — Título principal del panel */
         .sidenav-logo {
-            padding: 20px 16px 16px;
+            position: relative;
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px 52px 16px 16px;
             background: var(--color-primario);
             font-family: var(--font-titulo);
             font-size: 15px; font-weight: 700;
             color: var(--color-blanco); letter-spacing: 1px; text-transform: uppercase;
             flex-shrink: 0;
+        }
+        .sidenav-logo .sidenav-logo-mark {
+            position: absolute;
+            top: 50%;
+            right: 12px;
+            width: 28px; height: 28px;
+            object-fit: contain;
+            transform: translateY(-50%);
         }
         .sidenav-logo span { color: var(--color-blanco); opacity: 0.85; }
         .sidenav-body {
@@ -655,7 +675,7 @@
                 ]
             },
             'basquet': {
-                imagen: 'imagenes/basquet.webp', rotacionSky: '0 -90 0',
+                imagen: 'imagenes/basquet.jpg', rotacionSky: '0 -90 0',
                 flechas: [
                     { target: 'voley', position: '-20 -1 25', rotation: '0 -45 0', imgSrc: '#img-flecha-derecha' },
                     { target: 'explanada', position: '20 -1 -25', rotation: '0 140 0' },
@@ -723,7 +743,7 @@
                 ]
             },
             'aula': {
-                imagen: 'imagenes/aula.webp', rotacionSky: '0 0 0',
+                imagen: 'imagenes/aula.jpg', rotacionSky: '0 0 0',
                 flechas: [
                     { target: 'edificioA', position: '-0.44 2 -11.99', rotation: '0 0 0' },
                     { target: 'datalab', position: '-10 -1 0', rotation: '0 -90 0' },
@@ -813,7 +833,7 @@
                 ]
             },
             'robotica': {
-                imagen: 'imagenes/robotica.webp', rotacionSky: '0 -90 0',
+                imagen: 'imagenes/robotica.jpg', rotacionSky: '0 -90 0',
                 flechas: [
                     { target: 'datalab', position: '-9.25 2 -7.65', rotation: '0 0 0' }
                 ]
@@ -2956,11 +2976,15 @@
 
     <!-- ── 2D HOTSPOTS ──────────────────────────────────── -->
     <div id="hotspots-2d-overlay"></div>
+    <img id="corner-logo" src="imagenes/pisoLogo.webp" alt="">
 
     <!-- ── SIDE NAV ─────────────────────────────────────── -->
     <div id="sidenav">
         <button id="sidenav-toggle" title="Abrir/Cerrar menú">❮</button>
-        <div class="sidenav-logo">MAPA <span>ESAN</span></div>
+        <div class="sidenav-logo">
+            <span>MAPA ESAN</span>
+            <img class="sidenav-logo-mark" src="imagenes/pisoLogo.webp" alt="">
+        </div>
         <div class="sidenav-body" id="sidenav-body"></div>
         <div class="sidenav-footer">
             <a class="sidenav-link" href="https://www.youtube.com/user/UniversidadEsan" target="_blank">
